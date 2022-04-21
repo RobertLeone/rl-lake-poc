@@ -22,3 +22,14 @@ Informações para se conectar ao cluster:
 - S3
 - Glue
 - EC2 / Metabase
+
+# Lambda
+A ideia de utilizar a Lambda é conseguir fazer a extração de todos os dados paralelamente referente ao ano de 2022. Ao total serão duas Lambdas.
+
+### covid-intake
+
+Lambda que pega os dados de acordo com a data configurada no payload.
+
+### covid-splitter
+
+Lambda que irá replicara covid-intake de acordo com os dias totais de 2022, ou seja, acima de 100 lambdas invocadas.
