@@ -23,54 +23,23 @@ Para o seguinte projeto é necessário que você possua conhecimentos em:
 - ElasticSearch (Query, search_after) | Básico.
 - AWS Cloud e toda a stack utilizada no projeto | Básico.
 - Python | Intermediário.
+- Docker | Básico
 
 ## Stack
 - Lambda
 - S3
 - Glue
 - Athena
-- EC2 / Metabase
+- Docker Metabase
 
 # Camada Bronze
 
 ## Lambda
-Lambda é um serviço serveless da AWS que pode ser utilizada para n serviços enviando eventos ou fazendo algo simples com o código.
+Lambda é um serviço serveless da AWS que pode ser utilizado em diversos projetos seja como gatilho para iniciar algum outro serviço da AWS ou até mesmo trazer dados de API.
 
-A ideia de utilizar a Lambda é conseguir trazero máximo de dados de forma paralela, isso referente ao ano de 2022. Ao total serão duas Lambdas. Cotundo, irei trazer dados entre 01/01/2022 e 31/03/2022, e mesmo assim aproxidamente 23 lambdas irão dar erro de timeout, porém não tem problema pois acredito que esta função será melhor utilizada para webhooks e trazer os dados de forma diária, como o caso da covid é algo excepcional e o projeto é para ser o mais barato o possível, resolvi utilizar Lambda em vez do API Gateway.
+A ideia de utilizar a Lambda é conseguir trazer o máximo de dados de forma paralela utilizando duas Lambdas. Contudo, irei trazer dados entre 01/01/2022 e 31/03/2022, e mesmo assim aproxidamente 23 lambdas irão dar erro de timeout.
 
-## Roles Lambda
-Antes de mais nada é necessário criar sua role para suas Lambdas, é ela quem vai permitir que sua Lambda consiga acessar o Bucket S3, ou então, invocar outras Lambdas.
-Não configurei logs e cloudwatch para minha role afim de evitar custos, mas é essêncial que em um ambiente de produção você coloque a policy de logs e cloudwatch.
-
-Crie a seguinte policy e depois faça o attach na sua role para a Lambda.
-
-    {
-     "Version": "2012-10-17",
-     "Statement": [
-         {
-             "Sid": "VisualEditor0",
-             "Effect": "Allow",
-             "Action": [
-                 "s3:PutObject",
-                 "s3:PutObjectAcl",
-                 "s3:GetObject",
-                 "s3:GetObjectAcl",
-                 "s3:ListBucket"
-             ],
-             "Resource": "arn:aws:s3:::*"
-         },
-         {
-             "Sid": "VisualEditor1",
-             "Effect": "Allow",
-             "Action": "s3:ListBucket",
-             "Resource": "arn:aws:s3:::*"
-         }
-     ]
-    }
-
-E attach a policy AWSLambdaRole que já existe por default na AWS.
-
-![role-lambda](image/role-lambda.png)
+Como é um mini-projeto não vejo problemas pois acredito que esta função será melhor utilizada para webhooks e trazer os dados de forma diária, no caso minha ideia é que o projeto seja o mais barato o possível.
 
 ## Covid-intake
 Utilizei as seguintes configurações para esta Lambda:
@@ -81,7 +50,7 @@ Utilizei as seguintes configurações para esta Lambda:
 - 10 minutos de timeout.
 - Importar Layer "Requests", (É igual dar um pip install requests, porém você terá que baixar a biblioteca e importar para sua Lambda através da Layer)
 
-Como afirmei acima, não foi possível ter 100% das lambdas com todos os dados por causa do tempo de timeout, isso ocorre por causa do filtro que estou utilizando na minha query do Elastic que é "vacina_dataAplicacao", ela informa quando a pessoa foi vacinada. Este foi o menor range possível que consegui encontrar para obter os dados de forma que a Lambda consiga trazer o mais rápido possível.
+Como afirmei acima, não foi possível ter 100% de sucessos das lambdas com todos os dados por causa do tempo de timeout, isso ocorre por causa do filtro que estou utilizando na minha query do Elastic que é "vacina_dataAplicacao", ela informa quando a pessoa foi vacinada. Este foi o menor range possível que consegui encontrar para obter os dados de forma que a Lambda consiga trazer o mais rápido possível.
 
 ## Covid-splitter
 
@@ -91,17 +60,46 @@ Como afirmei acima, não foi possível ter 100% das lambdas com todos os dados p
 - 3 minutos de timeout.
 - Não é necessário importar layer.
 
-Essa Lambda é quem irá invocar todas as Lambdas da Covid-intake utilizando a data necessária, ela quem será o meu trigger para iniciar o restantes das Lambdas, no meu caso estou utilizando um range de 90 dias, por tanto, 90 Lambdas funcionando.
+Essa Lambda é quem irá invocar todas as Lambdas da Covid-intake utilizando a data necessária, ela quem será o meu trigger para invocar o restantes das Lambdas, no meu caso estou utilizando um range de 90 dias, por tanto, 90 Lambdas funcionando ao mesmo tempo.
 
 ## S3
-O S3 é o serviço de armazenamento da Amazon, nesse projeto serão aproxidamente 40GB armazenados, o que irá gerar um custo mínimo, caso não queira gastar basta diminuir o range de data do Covid-splitter para ficar até 2GB, e não se esqueça que a cobrança é de até 2000 PUT no S3, ou seja, você consegue enviar 2000 objetos de graça, o restante paga, irei abordar de forma mais detalhada sobre os preços ao final do documento.
+O S3 é o serviço de armazenamento da Amazon, nesse projeto serão aproxidamente 20GB de armazenados.
 
-Após a configuração das Lambdas e seu código pronto, é necessário criar ao menos 1 bucket no S3 para ai só depois você rodar o código, no meu caso eu criei o rl-bronze-lake, e também será necessário criar o rl-silver-lake quando for processar os dados pelo Glue.
+Após a configuração das Lambdas e seu código pronto, é necessário criar ao menos 1 bucket no S3 como seu target para enviar os dados, no meu caso eu criei o rl-bronze-lake, e também será necessário criar o rl-silver-lake quando for processar os dados pelo Glue.
 
 ![s3](image/s3.png)
 
-Pronto, você finalizou a camada bronze do seu datalake, é claro que em um ambiente de produção teriamos que trabalhar em algo muito mais robusto, com padrão de tags e o máximo de perfomance o possível e tratamento de erros no seu código, porém o tempo para esse projeto é curto, então mão na massa para a camada Silver.
+Camada bronze finalizada, é claro que em um ambiente de produção teriamos que trabalhar em algo muito mais robusto, com padrão de tags e o máximo de perfomance o possível com tratamento de erros no seu código, porém o tempo para esse projeto é curto.
 
 # Camada Silver
 
-Em trabalho ainda...
+## Glue
+Glue é um serviço da AWS que realiza ETLs e tem capacidade de catalogar suas tabelas para serem utilizadas por analistas posteriormente. O job do Glue é onde fica seu script em spark para processar e deixar seus dados na formatação correta, já o Crawler serve para catalogar os dados processados e neste caso ser enviado para o AWS Athena.
+
+Observação: na Amazon o Athena não é propriamente um Banco de Dados OLAP ou OLTP, ele serve para você fazer consultas SQL para qualquer tipo de arquivo propriamente tratao como json, csv, parquet e afins. Por isso, que utilizamos ele após o processamento do Job no Glue.
+
+Como citado anteriormente, foi necessário criar outro bucket para guardar os arquivos que serão processados nessa camada, o script spark que utilizei está na pasta "glue".
+
+![glue-job](image/glue-job.png)
+
+Após rodar o job, é possível verificar no bucket os arquivos processados da silver, de 20Gb foi reduzido para 140Mb aproxidamente, isso ocorre pois na minha query já estou retirando a duplicidade de dados.
+
+![s3-silver](image/s3-silver.png)
+
+Por fim, crie um Crawler ainda utilizando o Glue, aponte para o bucket da silver e crie um banco de dados no Athena para ser possível retirar insights e análises.
+
+![glue-crawler](image/crawler-glue.png)
+
+Finalizada a Camada Silver.
+
+# DataViz
+
+## Metabase
+Você pode utilizar N ferramentas de dataviz como o PowerBi, Tableau e afins para conseguir se conectar ao Athena que foi criado na Camada Silver, no meu caso eu subi a ferramenta de dataviz "metabase" seguindo o tutorial do Murilo, segue o link:
+- https://muriloalvesdev.medium.com/conectando-metabase-ao-athena-aws-utilizando-docker-8cef92980597 
+
+Só uma observação, na hora de fazer o download do jar, procure a versão mais atualizada dele no mesmo repositório do dacort, também é possível subir o metabase por EC2 na nuvem, pensando em disponibilizar isso para a sua empresa e lembrando, Metabase é uma ferramenta de dataviz open source.
+
+Por fim, temos nosso dashboard após a configurações. Também estarei deixando minhas queries no repositório "query".
+
+![dashboard](image/dashboard.png)
