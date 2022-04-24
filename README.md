@@ -41,8 +41,9 @@ A ideia de utilizar a Lambda é conseguir trazer o máximo de dados de forma par
 
 Como é um mini-projeto não vejo problemas pois acredito que esta função será melhor utilizada para webhooks e trazer os dados de forma diária, no caso minha ideia é que o projeto seja o mais barato o possível.
 
+Pasta onde guardei o código da [lambda](lambda/)
+
 ## Covid-intake
-Utilizei as seguintes configurações para esta Lambda:
 
 - Linguagem Python 3.9
 - 2024MB de Memória RAM.
@@ -78,7 +79,7 @@ Glue é um serviço da AWS que realiza ETLs e tem capacidade de catalogar suas t
 
 Observação: na Amazon o Athena não é propriamente um Banco de Dados OLAP ou OLTP, ele serve para você fazer consultas SQL para qualquer tipo de arquivo propriamente tratao como json, csv, parquet e afins. Por isso, que utilizamos ele após o processamento do Job no Glue.
 
-Como citado anteriormente, foi necessário criar outro bucket para guardar os arquivos que serão processados nessa camada, o script spark que utilizei está na pasta "glue".
+Como citado anteriormente, foi necessário criar outro bucket para guardar os arquivos que serão processados nessa camada, o script spark que utilizei está na pasta [glue](glue/).
 
 ![glue-job](image/glue-job.png)
 
@@ -100,6 +101,6 @@ Você pode utilizar N ferramentas de dataviz como o PowerBi, Tableau e afins par
 
 Só uma observação, na hora de fazer o download do jar, procure a versão mais atualizada dele no mesmo repositório do dacort, também é possível subir o metabase por EC2 na nuvem, pensando em disponibilizar isso para a sua empresa e lembrando, Metabase é uma ferramenta de dataviz open source.
 
-Por fim, temos nosso dashboard após a configurações. Também estarei deixando minhas queries no repositório "query".
+Por fim, temos nosso dashboard após a configurações. Também estarei deixando minhas queries no repositório [query](query/).
 
 ![dashboard](image/dashboard.png)
