@@ -12,6 +12,9 @@ glueContext = GlueContext(SparkContext.getOrCreate())
 spark = glueContext.spark_session
 
 def input_data(input):
+    """
+    Função que faz a leitura dos dados na bronze.
+    """
     try:
         df = spark.read.json(f"s3://rl-bronze-lake/datasus/{input}/")
     except Exception as e:
@@ -19,12 +22,18 @@ def input_data(input):
     return df
 
 def output_data(df):
+    """
+    Função que retorna os dados transformar e processados em parquet para a silver.
+    """
     try:
         df.write.mode("overwrite").parquet(f"s3://rl-silver-lake/datasus/")
     except Exception as e:
         raise(f"Output error: {e}")
 
 def explode_struct(nested_df):
+    """
+    Função que transforma os dados dentro da Struct em colunas.
+    """
     try:
         flat_cols = [c[0] for c in nested_df.dtypes if c[1][:6] != 'struct']
         nested_cols = [c[0] for c in nested_df.dtypes if c[1][:6] == 'struct']
@@ -38,6 +47,11 @@ def explode_struct(nested_df):
     return flat_df
 
 def adjust_json_filed(noisy_df):
+    """
+    Função para realizar um tratamento necessário, pois cada json vem como lista
+    dentro de uma lista, então eu removo o primeiro array, retiro o [] e depois
+    transformo a coluna em struct.
+    """
     try:
         df_stage = noisy_df
         df_stage = df_stage.withColumn("id", explode_outer("id"))
@@ -49,6 +63,9 @@ def adjust_json_filed(noisy_df):
     return df_stage
 
 def transform_int(type, df, *args):
+    """
+    Função que faz tratamentos do tipo inteiro.
+    """
     try:
         dataframe = df
         if type == "int":
@@ -67,6 +84,9 @@ def transform_int(type, df, *args):
     return dataframe
 
 def transform_date(type,df,*args):
+    """
+    Função que faz tratamentos do tipo data.
+    """
     try:
         dataframe = df
         if type == "timestamp":
@@ -139,6 +159,9 @@ schema = StructType([
 ])
 
 def etl_datasus():
+    """
+    Função que realiza o ETL completo com todas as transformações necessárias.
+    """
     try:
         df_datasus = input_data("date=*")
         df_datasus = adjust_json_filed(df_datasus)
